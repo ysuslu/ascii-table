@@ -1,6 +1,6 @@
 package com.github.freva.asciitable;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,7 +14,8 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static com.github.freva.asciitable.HorizontalAlign.*;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AsciiTableTest {
     private static final List<Planet> planets = Arrays.asList(
@@ -648,11 +649,12 @@ public class AsciiTableTest {
                 "+-------+--------+-------+", System.lineSeparator(), GREEN, YELLOW, BLUE, RED, RESET), actual);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void validateTooFewBorderChars() {
         String[] headers = {"Lorem", "Ipsum", "Dolor", "Sit"};
         String[][] data = {{"11", "12", "13"}, {"21", "22"}, {"31", "32", "33", "34"}};
-        AsciiTable.getTable(new Character[10], headers, null, data);
+        assertThrows(IllegalArgumentException.class,
+                () -> AsciiTable.getTable(new Character[10], headers, null, data));
     }
 
     @Test

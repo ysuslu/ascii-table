@@ -1,17 +1,19 @@
 package com.github.freva.asciitable;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AsciiTableBuilderTest {
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void doesNotAllowHeaderWithColumns() {
-        AsciiTable.builder().header("header").data(new Column[0], new Object[0][0]).asString();
+        assertThrows(IllegalArgumentException.class,
+                () -> AsciiTable.builder().header("header").data(new Column[0], new Object[0][0]).asString());
     }
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void doesNotAllowFooterWithColumns() {
-        AsciiTable.builder().footer("footer").data(new Column[0], new Object[0][0]).asString();
+        assertThrows(IllegalArgumentException.class,
+                () -> AsciiTable.builder().footer("footer").data(new Column[0], new Object[0][0]).asString());
     }
 }
