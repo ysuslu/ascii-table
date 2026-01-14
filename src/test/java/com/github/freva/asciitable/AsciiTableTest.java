@@ -14,6 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static com.github.freva.asciitable.HorizontalAlign.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -676,6 +677,65 @@ public class AsciiTableTest {
 
         // Since padding is included in length, justifying to same length with padding should be no-op
         assertJustify(string, string, CENTER, string.length(), 3);
+    }
+
+    @Test
+    public void tableRespectsMaxTableWidth() {
+        String[][] data = {{"1", "Mercury", "0.382", "0.06", "minimal"},
+                {"2", "Venus", "0.949", "0.82", "Carbon dioxide, Nitrogen"},
+                {"3", "Earth", "1.000", "1.00", "Nitrogen, Oxygen, Argon"},
+                {"4", "Mars", "0.532", "0.11", "Carbon dioxide, Nitrogen, Argon"}};
+
+        Column[] columns = new Column[]{new Column(), new Column(), new Column(), new Column(), new Column()};
+        assertArrayEquals(new int[]{3, 9, 7, 6, 33}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, null));
+        assertArrayEquals(new int[]{3, 9, 7, 6, 33}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 100));
+        assertArrayEquals(new int[]{3, 9, 7, 6, 33}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 64));
+        assertArrayEquals(new int[]{3, 9, 7, 6, 32}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 63));
+        assertArrayEquals(new int[]{3, 9, 7, 6, 31}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 62));
+        assertArrayEquals(new int[]{3, 7, 6, 5, 23}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 50));
+        assertArrayEquals(new int[]{3, 4, 4, 4, 9}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 30));
+        assertArrayEquals(new int[]{3, 4, 3, 3, 6}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 25));
+        assertArrayEquals(new int[]{3, 3, 3, 3, 3}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 21));
+        assertThrows(IllegalArgumentException.class, () -> AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII, 20));
+
+        assertArrayEquals(new int[]{3, 3, 3, 3, 3}, AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII_NO_OUTSIDE_BORDER, 19));
+        assertThrows(IllegalArgumentException.class, () -> AsciiTable.getColWidths(columns, data, AsciiTable.BASIC_ASCII_NO_OUTSIDE_BORDER, 18));
+
+        assertArrayEquals(new int[]{3, 4, 4, 4, 9}, AsciiTable.getColWidths(columns, data, AsciiTable.NO_BORDERS, 24));
+        assertArrayEquals(new int[]{3, 3, 3, 3, 3}, AsciiTable.getColWidths(columns, data, AsciiTable.NO_BORDERS, 15));
+        assertThrows(IllegalArgumentException.class, () -> AsciiTable.getColWidths(columns, data, AsciiTable.NO_BORDERS, 14));
+
+
+        Column[] colMaxW = new Column[]{new Column().maxWidth(10), new Column().maxWidth(7, OverflowBehaviour.NEWLINE), new Column().maxWidth(5, OverflowBehaviour.CLIP_RIGHT), new Column(), new Column().maxWidth(20, OverflowBehaviour.ELLIPSIS_RIGHT)};
+        assertArrayEquals(new int[]{3, 7, 5, 6, 20}, AsciiTable.getColWidths(colMaxW, data, AsciiTable.BASIC_ASCII, null));
+        assertArrayEquals(new int[]{3, 7, 5, 6, 20}, AsciiTable.getColWidths(colMaxW, data, AsciiTable.BASIC_ASCII, 47));
+        assertArrayEquals(new int[]{3, 7, 5, 6, 19}, AsciiTable.getColWidths(colMaxW, data, AsciiTable.BASIC_ASCII, 46));
+        assertArrayEquals(new int[]{3, 4, 4, 4, 9}, AsciiTable.getColWidths(colMaxW, data, AsciiTable.BASIC_ASCII, 30));
+        assertArrayEquals(new int[]{3, 3, 3, 3, 3}, AsciiTable.getColWidths(colMaxW, data, AsciiTable.BASIC_ASCII, 21));
+        assertThrows(IllegalArgumentException.class, () -> AsciiTable.getColWidths(colMaxW, data, AsciiTable.BASIC_ASCII, 20));
+
+
+        Column[] colMinW = new Column[]{new Column().minWidth(5), new Column().minWidth(1), new Column().minWidth(7), new Column().minWidth(3), new Column().minWidth(10)};
+        assertArrayEquals(new int[]{5, 9, 7, 6, 33}, AsciiTable.getColWidths(colMinW, data, AsciiTable.BASIC_ASCII, null));
+        assertArrayEquals(new int[]{5, 9, 7, 6, 33}, AsciiTable.getColWidths(colMinW, data, AsciiTable.BASIC_ASCII, 66));
+        assertArrayEquals(new int[]{5, 9, 7, 6, 32}, AsciiTable.getColWidths(colMinW, data, AsciiTable.BASIC_ASCII, 65));
+        assertArrayEquals(new int[]{5, 5, 7, 4, 18}, AsciiTable.getColWidths(colMinW, data, AsciiTable.BASIC_ASCII, 45));
+        assertArrayEquals(new int[]{5, 3, 7, 3, 10}, AsciiTable.getColWidths(colMinW, data, AsciiTable.BASIC_ASCII, 34));
+        assertThrows(IllegalArgumentException.class, () -> AsciiTable.getColWidths(colMinW, data, AsciiTable.BASIC_ASCII, 33));
+
+
+        assertArrayEquals(new int[]{3, 5, 4, 5, 13}, AsciiTable.getColWidths(colMaxW, data, AsciiTable.NO_BORDERS, 30));
+        String expected = String.join(System.lineSeparator(),
+                " 1  Mer  0.  0.0      minimal ",
+                "    cur        6              ",
+                "      y                       ",
+                " 2  Ven  0.  0.8  Carbon dio… ",
+                "     us        2              ",
+                " 3  Ear  1.  1.0  Nitrogen, … ",
+                "     th        0              ",
+                " 4  Mar  0.  0.1  Carbon dio… ",
+                "      s        1              ");
+        assertEquals(expected, AsciiTable.builder().data(colMaxW, data).border(AsciiTable.NO_BORDERS).maxTableWidth(30).asString());
     }
 
     private static void assertParagraphs(OverflowBehaviour overflowBehaviour, String... expectedLines) {

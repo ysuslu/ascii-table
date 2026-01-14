@@ -160,6 +160,37 @@ Prints
 +------------+------------+------------+------------+------------+
 ```
 
+## Max table width
+```java
+System.out.println(AsciiTable.builder().data(planets, Arrays.asList(
+            new Column().with(planet -> Integer.toString(planet.num)),
+            new Column().minWidth(10).with(planet -> planet.name),
+            new Column().with(planet -> String.format("%.03f", planet.diameter)),
+            new Column().with(planet -> String.format("%.02f", planet.mass)),
+            new Column().maxWidth(12).with(planet -> planet.atmosphere)))
+        .maxTableWidth(50)
+        .asString());
+```
+Prints
+```
++---+----------+-------+------+------------+
+| 1 |  Mercury | 0.382 | 0.06 |    minimal |
++---+----------+-------+------+------------+
+| 2 |    Venus | 0.949 | 0.82 |     Carbon |
+|   |          |       |      |   dioxide, |
+|   |          |       |      |   Nitrogen |
++---+----------+-------+------+------------+
+| 3 |    Earth | 1.000 | 1.00 |  Nitrogen, |
+|   |          |       |      |    Oxygen, |
+|   |          |       |      |      Argon |
++---+----------+-------+------+------------+
+| 4 |     Mars | 0.532 | 0.11 |     Carbon |
+|   |          |       |      |   dioxide, |
+|   |          |       |      |  Nitrogen, |
+|   |          |       |      |      Argon |
++---+----------+-------+------+------------+
+```
+
 **Bonus:** The original line breaks are always preserved, so you can split your 
 text however you want before making the table.
 
