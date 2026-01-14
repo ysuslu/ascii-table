@@ -35,7 +35,7 @@ public class AsciiTable {
             '╪', '╣', '║', '│', '║', '╟', '─', '┼', '╢', '╠', '═', '╪', '╣', '║', '│', '║', '╚', '═', '╧', '╝'};
 
 
-    static void writeTable(OutputStreamWriter osw, String lineSeparator, Character[] border, Column[] rawColumns, Object[][] data, Styler styler) throws IOException {
+    static void writeTable(OutputStreamWriter osw, String lineSeparator, Character[] border, Column[] rawColumns, Object[][] data, Styler styler, Integer maxTableWidth) throws IOException {
         if (border.length != NO_BORDERS.length)
             throw new IllegalArgumentException("Border characters array must be exactly " + NO_BORDERS.length + " elements long");
 
@@ -46,11 +46,11 @@ public class AsciiTable {
                 .filter(Column::isVisible)
                 .toArray(Column[]::new);
 
-        writeTable(osw, lineSeparator, border, columns, stringData, styler);
+        writeTable(osw, lineSeparator, border, columns, stringData, styler, maxTableWidth);
     }
 
-    private static void writeTable(OutputStreamWriter osw, String lineSeparator, Character[] border, Column[] columns, String[][] data, Styler styler) throws IOException {
-        int[] colWidths = getColWidths(columns, data);
+    private static void writeTable(OutputStreamWriter osw, String lineSeparator, Character[] border, Column[] columns, String[][] data, Styler styler, Integer maxTableWidth) throws IOException {
+        int[] colWidths = getColWidths(columns, data, border, maxTableWidth);
         OverflowBehaviour[] overflows = Arrays.stream(columns).map(Column::getOverflowBehaviour).toArray(OverflowBehaviour[]::new);
         boolean insertNewline = writeLine(osw, colWidths, border[0], border[1], border[2], border[3]);
 
@@ -159,7 +159,7 @@ public class AsciiTable {
     }
 
     /** Returns the width of each column in the resulting table */
-    private static int[] getColWidths(Column[] columns, String[][] data) {
+    static int[] getColWidths(Column[] columns, String[][] data, Character[] border, Integer maxTableWidth) {
         int[] result = new int[columns.length];
 
         for (String[] dataRow : data) {
@@ -177,6 +177,46 @@ public class AsciiTable {
                 length = Math.max(length, LineUtils.maxLineLength(columns[col].getFooter()));
             result[col] = Math.max(Math.min(columns[col].getMaxWidth(), length + 2 * PADDING), columns[col].getMinWidth());
         }
+
+        if (maxTableWidth == null) return result;
+
+        int[] minWidths = new int[columns.length];
+        int totalMinWidth = 0;
+        int totalCurrentWidth = 0;
+        for (int i = 0; i < result.length; i++) {
+            minWidths[i] = Math.max(columns[i].getMinWidth(), 2 * PADDING + Math.min(result[i], 1));
+            totalMinWidth += minWidths[i];
+            totalCurrentWidth += result[i];
+        }
+
+        int borderWidth = (border[4] != null ? 1 : 0) + (border[6] != null ? 1 : 0) + (border[5] != null ? columns.length - 1 : 0);
+        if (totalCurrentWidth + borderWidth <= maxTableWidth)
+            return result;
+
+        int totalSlack = totalCurrentWidth - totalMinWidth;
+        if (totalSlack < totalCurrentWidth + borderWidth - maxTableWidth)
+            throw new IllegalArgumentException("Max table width " + maxTableWidth +
+                    " is too small to fit the minimum column widths totaling " + (totalMinWidth + borderWidth) + ".");
+
+        int slackDeficit = maxTableWidth - borderWidth - totalMinWidth;
+        double ratio = slackDeficit / (double) totalSlack;
+        double[] remainders = new double[result.length];
+        for (int i = 0; i < result.length; i++) {
+            double exactShare = (result[i] - minWidths[i]) * ratio;
+            int flooredShare = (int) exactShare;
+            remainders[i] = exactShare - flooredShare;
+            result[i] = minWidths[i] + flooredShare;
+            slackDeficit -= flooredShare;
+        }
+
+        for (int i = 0; i < slackDeficit; i++) {
+            int maxAt = 0;
+            for (int j = 1; j < remainders.length; j++)
+                maxAt = remainders[j] > remainders[maxAt] ? j : maxAt;
+            remainders[maxAt] = -1;
+            result[maxAt]++;
+        }
+
         return result;
     }
 

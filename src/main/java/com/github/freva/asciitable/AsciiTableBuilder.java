@@ -19,6 +19,7 @@ public class AsciiTableBuilder {
     private String[] footer;
     private Column[] columns;
     private Object[][] data;
+    private Integer maxTableWidth;
 
     /** Set the line separator to use between table rows. Default is {@link System#lineSeparator()}. */
     public AsciiTableBuilder lineSeparator(String lineSeparator) {
@@ -77,6 +78,12 @@ public class AsciiTableBuilder {
     }
 
 
+    /** Set the maximum width for the entire table (including borders). */
+    public AsciiTableBuilder maxTableWidth(int maxTableWidth) {
+        this.maxTableWidth = maxTableWidth;
+        return this;
+    }
+
     /** Render the table and return it as String */
     public String asString() {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -101,7 +108,7 @@ public class AsciiTableBuilder {
 
         try {
             OutputStreamWriter osw = new OutputStreamWriter(os);
-            AsciiTable.writeTable(osw, lineSeparator, border, columns, data, styler);
+            AsciiTable.writeTable(osw, lineSeparator, border, columns, data, styler, maxTableWidth);
             osw.flush();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
